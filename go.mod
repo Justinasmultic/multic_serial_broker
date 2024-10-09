@@ -1,4 +1,4 @@
-module sandbox
+module multic_serial_broker
 
 go 1.23.1
 
