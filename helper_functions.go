@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"time"
+	//"time"
 	"encoding/hex"
 	"encoding/binary"
 	"math"
@@ -104,7 +104,7 @@ func xorChecksum(data []byte) byte {
 		checksum ^= b
 		fmt.Printf("checksum: %X \n", checksum)
 		
-		time.Sleep(1 * time.Second) // separate points by 1 second
+		//time.Sleep(1 * time.Second) // separate points by 1 second
 	}
 	return checksum
 }

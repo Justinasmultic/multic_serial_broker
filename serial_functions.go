@@ -230,6 +230,7 @@ func SerialReadSinglePayload(portName string) {
 				fmt.Printf("cheksum= '%X' \n", payload_xor_checksum )	
 
 
+				//write_influx_datapoint (portName, payloat_pir1_value_fl, payloat_pir2_value_fl)
 
 
 				time.Sleep(2 * time.Second) // separate points by 1 second
@@ -431,9 +432,13 @@ func SerialReadContinuousPayload(portName string) {
 
 				// do XOR for this range 
 				calculated_xor_checksum := xorChecksum(buf[poz_length:poz_xor_1])
-				fmt.Printf("calculated cheksum = '%X' \n", calculated_xor_checksum )	
+				fmt.Printf("calculated cheksum = '%X' \n", calculated_xor_checksum )
 
-				//time.Sleep(2 * time.Second) // separate points by 1 second
+
+				write_influx_datapoint (portName, payloat_pir1_value_fl, payloat_pir2_value_fl)
+
+
+				time.Sleep(2 * time.Second) // separate points by 1 second
 
 			index++
 			}	
