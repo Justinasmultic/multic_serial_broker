@@ -438,7 +438,7 @@ func SerialReadContinuousPayload(portName string) {
 				write_influx_datapoint (portName, payloat_pir1_value_fl, payloat_pir2_value_fl)
 
 
-				time.Sleep(2 * time.Second) // separate points by 1 second
+				//time.Sleep(2 * time.Second) // separate points by 1 second
 
 			index++
 			}	
@@ -448,7 +448,7 @@ func SerialReadContinuousPayload(portName string) {
 		}
 
 		// timer to sleep for 2 seconds before we reloop
-		time.Sleep(1 * time.Second) // separate points by 1 second
+		//time.Sleep(1 * time.Second) // separate points by 1 second
 	}
 }
 
