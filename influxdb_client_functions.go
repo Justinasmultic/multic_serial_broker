@@ -17,9 +17,9 @@ func init_influx_connection () {
 
 }
 
-func write_influx_datapoint (sensor_name string, pir1_value float32, pir2_value float32) {
+func write_influx_datapoint (sensor_name string, sensor_ir_status []byte, pir1_value float32, pir2_value float32) {
 
-	token := os.Getenv("INFLUXDB_TOKEN")
+	token := os.Getenv("INFLUX_TOKEN")
 
 	fmt.Printf("token= %s \n", token)
 
@@ -34,21 +34,23 @@ func write_influx_datapoint (sensor_name string, pir1_value float32, pir2_value 
 	//randomized_val2:=rand.Intn(100)	
 
 	tags := map[string]string{
-		"sensor": sensor_name,
+		"sensor_name": sensor_name,
 		"location": "Klaipedos Baldai",
-		"recipe": "Juodas alamo 13",
+		"recipe": "Stalas sokiams 666",
 	}
+
 
 
 	fields := map[string]interface{}{
 		"pir1_value": pir1_value,
 		"pir2_value": pir2_value,
+		"sensor_ir_status": sensor_ir_status,
 	}
 
-	fmt.Printf("writing sensor name %s pir1 %f and pir2 %f \n", sensor_name, pir1_value, pir2_value)
+	fmt.Printf("writing sensor name %s pir1 %f and pir2 %f and sensor ir status %X  \n", sensor_name, pir1_value, pir2_value, sensor_ir_status)
 
 
-	point := write.NewPoint("sensor", tags, fields, time.Now())	
+	point := write.NewPoint("sensor_pir_measurement", tags, fields, time.Now())	
 
 
 	if err := writeAPI.WritePoint(context.Background(), point); err != nil {

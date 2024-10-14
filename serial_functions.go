@@ -435,7 +435,7 @@ func SerialReadContinuousPayload(portName string) {
 				fmt.Printf("calculated cheksum = '%X' \n", calculated_xor_checksum )
 
 
-				write_influx_datapoint (portName, payloat_pir1_value_fl, payloat_pir2_value_fl)
+				write_influx_datapoint (portName, payload_pir_status, payloat_pir1_value_fl, payloat_pir2_value_fl)
 
 
 				//time.Sleep(2 * time.Second) // separate points by 1 second
