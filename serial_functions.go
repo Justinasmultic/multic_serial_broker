@@ -353,11 +353,11 @@ func SerialReadContinuousPayload(portName string) {
 
 				// Step 3: Convert the Unix timestamp to a time.Time object
 				// Unix expects the number of seconds since 1970-01-01
-				//timeValue := time.Unix(int64(timestamp), 0)
+				timeValue := time.Unix(int64(timestamp), 0)
 
 				// Print the converted timestamp
 				fmt.Printf("VALUE 1  %v , VALUE 2 %T \n", timestamp, timestamp)
-				//fmt.Printf("Readable timestamp: %s\n", timeValue.Format(time.RFC3339))
+				fmt.Printf("Readable timestamp: %s\n", timeValue.Format(time.RFC3339))
 				
 			
 
@@ -436,10 +436,10 @@ func SerialReadContinuousPayload(portName string) {
 
 				fmt.Printf("full payload = '%X' \n", string (buf[poz_length:poz_xor_2]))
 
-				write_influx_datapoint (portName, byteHexToInt(payload_pir_status), payload_pir1_value_fl, payloat_pir2_value_fl)
+				write_influx_datapoint (portName, byteHexToInt(payload_pir_status), timestamp, payload_pir1_value_fl, payloat_pir2_value_fl)
 
 
-				time.Sleep(2 * time.Second) // separate points by 1 second
+				//time.Sleep(2 * time.Second) // separate points by 1 second
 
 			index++
 			}	

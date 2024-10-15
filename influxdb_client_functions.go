@@ -12,12 +12,7 @@ import (
 
 
 
-func init_influx_connection () {
-
-
-}
-
-func write_influx_datapoint (sensor_name string, sensor_ir_status int, pir1_value float32, pir2_value float32) {
+func write_influx_datapoint (sensor_name string, sensor_ir_status int, timestamp uint32, pir1_value float32, pir2_value float32) {
 
 	token := os.Getenv("INFLUX_TOKEN")
 
@@ -28,10 +23,7 @@ func write_influx_datapoint (sensor_name string, sensor_ir_status int, pir1_valu
 	org := "multic"
 	bucket := "ikea_pilot1"
 	writeAPI := client.WriteAPIBlocking(org, bucket)
-
-
-	//randomized_val:=rand.Intn(100)
-	//randomized_val2:=rand.Intn(100)	
+	
 
 	tags := map[string]string{
 		"sensor_name": sensor_name,
@@ -44,6 +36,7 @@ func write_influx_datapoint (sensor_name string, sensor_ir_status int, pir1_valu
 		"pir1_value": pir1_value,
 		"pir2_value": pir2_value,
 		"sensor_ir_status": sensor_ir_status,
+		"sensor_timestamp": timestamp,
 	}
 
 	fmt.Printf("writing sensor name %s pir1 %f and pir2 %f and sensor ir status %d  \n", sensor_name, pir1_value, pir2_value, sensor_ir_status)
