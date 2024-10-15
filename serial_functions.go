@@ -431,9 +431,10 @@ func SerialReadContinuousPayload(portName string) {
 
 
 				// do XOR for this range 
-				calculated_xor_checksum := xorChecksum(buf[poz_length:poz_xor_1])
+				calculated_xor_checksum := xorChecksum(buf[int(positions[index]):poz_xor_1])
 				fmt.Printf("calculated cheksum = '%X' \n", calculated_xor_checksum )
 
+				fmt.Printf("full payload = '%X' \n", string (buf[poz_length:poz_xor_2]))
 
 				write_influx_datapoint (portName, payload_pir_status, payloat_pir1_value_fl, payloat_pir2_value_fl)
 
