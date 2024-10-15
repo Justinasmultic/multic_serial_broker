@@ -111,5 +111,11 @@ func xorChecksum(data []byte) byte {
 
 
 
-
-
+// 
+// CONVERT HEX to DEC
+func byteHexToInt(b []byte) int {
+	if len(b) == 1 {
+		return int(b[0]) // Convert the byte to an int
+	}
+	return 0 // Return 0 if byte array is not of length 1
+}

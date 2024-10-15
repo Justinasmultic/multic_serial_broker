@@ -188,11 +188,11 @@ func SerialReadSinglePayload(portName string) {
 
 				fmt.Printf("payload PIR 1 value= '%X' \n", payload_pir1_value)	
 
-				payloat_pir1_value_fl, err := hexToFloat32BigEndian(payload_pir1_value)
+				payload_pir1_value_fl, err := hexToFloat32BigEndian(payload_pir1_value)
 				if err != nil {
 					fmt.Printf("Error converting hex to float32: %v\n", err)
 				} else {
-					fmt.Printf("PIR1 float val = %f \n", payloat_pir1_value_fl)
+					fmt.Printf("PIR1 float val = %f \n", payload_pir1_value_fl)
 				}
 
 
@@ -230,7 +230,7 @@ func SerialReadSinglePayload(portName string) {
 				fmt.Printf("cheksum= '%X' \n", payload_xor_checksum )	
 
 
-				//write_influx_datapoint (portName, payloat_pir1_value_fl, payloat_pir2_value_fl)
+				//write_influx_datapoint (portName, payload_pir1_value_fl, payloat_pir2_value_fl)
 
 
 				time.Sleep(2 * time.Second) // separate points by 1 second
@@ -370,7 +370,7 @@ func SerialReadContinuousPayload(portName string) {
 				//fmt.Printf("poz2 for pir status '%d' \n", poz2)
 
 				payload_pir_status := []byte(buf[poz1:poz2])
-				fmt.Printf("payload pir status= '%X' \n", payload_pir_status)	
+				fmt.Printf("payload pir status= '%x' \n", payload_pir_status)	
 
 
 				// PAYLOAD PIR1 VALUE
@@ -388,11 +388,11 @@ func SerialReadContinuousPayload(portName string) {
 
 				fmt.Printf("payload PIR 1 value= '%X' \n", payload_pir1_value)	
 
-				payloat_pir1_value_fl, err := hexToFloat32BigEndian(payload_pir1_value)
+				payload_pir1_value_fl, err := hexToFloat32BigEndian(payload_pir1_value)
 				if err != nil {
 					fmt.Printf("Error converting hex to float32: %v\n", err)
 				} else {
-					fmt.Printf("PIR1 float val = %f \n", payloat_pir1_value_fl)
+					fmt.Printf("PIR1 float val = %f \n", payload_pir1_value_fl)
 				}
 
 
@@ -436,10 +436,10 @@ func SerialReadContinuousPayload(portName string) {
 
 				fmt.Printf("full payload = '%X' \n", string (buf[poz_length:poz_xor_2]))
 
-				write_influx_datapoint (portName, payload_pir_status, payloat_pir1_value_fl, payloat_pir2_value_fl)
+				write_influx_datapoint (portName, byteHexToInt(payload_pir_status), payload_pir1_value_fl, payloat_pir2_value_fl)
 
 
-				//time.Sleep(2 * time.Second) // separate points by 1 second
+				time.Sleep(2 * time.Second) // separate points by 1 second
 
 			index++
 			}	

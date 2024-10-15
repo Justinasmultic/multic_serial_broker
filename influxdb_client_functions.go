@@ -17,7 +17,7 @@ func init_influx_connection () {
 
 }
 
-func write_influx_datapoint (sensor_name string, sensor_ir_status []byte, pir1_value float32, pir2_value float32) {
+func write_influx_datapoint (sensor_name string, sensor_ir_status int, pir1_value float32, pir2_value float32) {
 
 	token := os.Getenv("INFLUX_TOKEN")
 
@@ -26,7 +26,7 @@ func write_influx_datapoint (sensor_name string, sensor_ir_status []byte, pir1_v
 	url := "http://localhost:8086"
 	client := influxdb2.NewClient(url, token)
 	org := "multic"
-	bucket := "ikea_pilot"
+	bucket := "ikea_pilot1"
 	writeAPI := client.WriteAPIBlocking(org, bucket)
 
 
@@ -40,14 +40,13 @@ func write_influx_datapoint (sensor_name string, sensor_ir_status []byte, pir1_v
 	}
 
 
-
 	fields := map[string]interface{}{
 		"pir1_value": pir1_value,
 		"pir2_value": pir2_value,
 		"sensor_ir_status": sensor_ir_status,
 	}
 
-	fmt.Printf("writing sensor name %s pir1 %f and pir2 %f and sensor ir status %X  \n", sensor_name, pir1_value, pir2_value, sensor_ir_status)
+	fmt.Printf("writing sensor name %s pir1 %f and pir2 %f and sensor ir status %d  \n", sensor_name, pir1_value, pir2_value, sensor_ir_status)
 
 
 	point := write.NewPoint("sensor_pir_measurement", tags, fields, time.Now())	
