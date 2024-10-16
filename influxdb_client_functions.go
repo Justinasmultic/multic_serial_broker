@@ -12,7 +12,7 @@ import (
 
 
 
-func write_influx_datapoint (sensor_name string, sensor_ir_status int, timestamp uint32, pir1_value float32, pir2_value float32) {
+func write_influx_datapoint (sensor_name string, sensor_ir_status int, this_cycle_time time.Time, timestamp uint32, pir1_value float32, pir2_value float32) {
 
 	token := os.Getenv("INFLUX_TOKEN")
 
@@ -28,7 +28,7 @@ func write_influx_datapoint (sensor_name string, sensor_ir_status int, timestamp
 	tags := map[string]string{
 		"sensor_name": sensor_name,
 		"location": "Klaipedos Baldai",
-		"recipe": "Stalas sokiams 666",
+		"recipe": "Stalas sokiams ",
 	}
 
 
@@ -42,12 +42,14 @@ func write_influx_datapoint (sensor_name string, sensor_ir_status int, timestamp
 	fmt.Printf("writing sensor name %s pir1 %f and pir2 %f and sensor ir status %d  \n", sensor_name, pir1_value, pir2_value, sensor_ir_status)
 
 
-	point := write.NewPoint("sensor_pir_measurement", tags, fields, time.Now())	
+	point := write.NewPoint("sensor_pir_measurement", tags, fields, this_cycle_time)	
 
 
 	if err := writeAPI.WritePoint(context.Background(), point); err != nil {
 			log.Fatal(err)
 	}
+
+	//writeAPI.Flush()
 
 
 }
