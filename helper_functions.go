@@ -102,7 +102,7 @@ func xorChecksum(data []byte) byte {
 	for _, b := range data {
 
 		checksum ^= b
-		fmt.Printf("checksum: %X \n", checksum)
+		//fmt.Printf("checksum: %X \n", checksum)
 		
 		//time.Sleep(1 * time.Second) // separate points by 1 second
 	}

@@ -2,12 +2,17 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
 	"time"
 	"os"
 	"log"
+	"context"
 	"strings"
 	"github.com/tarm/serial"
 	"encoding/binary"
+	"github.com/influxdata/influxdb-client-go/v2/api/write"
+	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
+
 )
 
 
@@ -55,6 +60,10 @@ func MonitorSerialDevices() {
 // READ continuous payload stream by initiating it through START command
 
 func SerialReadContinuousPayload(portName string) {
+	
+
+
+
 	// Configure the serial port
 	config := &serial.Config{Name: portName, Baud: 9600, ReadTimeout: time.Second * 5}
 	port, err := serial.OpenPort(config)
@@ -111,7 +120,14 @@ func SerialReadContinuousPayload(portName string) {
 		
 
 		// init current timestamp for this cycle
-		this_cycle_time := time.Now() 
+		
+		//this_cycle_time := time.Now() 
+		//timenow := time.Now() 
+		//this_cycle_time := timenow.Format("2006-01-02 15:04:05.000000")
+		//timenow.UnixMicro()
+
+		//fmt.Printf("CYCLE TIMESTAMP IS = %s \n", this_cycle_time)
+		//time.Sleep(3 * time.Second) // separate points by 1 second
 
 
 		var index int = 0
@@ -119,18 +135,19 @@ func SerialReadContinuousPayload(portName string) {
 		if len(positions) > 0 {
 
 			for index < len(positions){
+				
 				fmt.Printf("Hex pattern '%s' found at positions: %v\n", frame_start, positions)
 
 				// LENGTH
 				// Parsing payload_length 
-				poz_length:= int(positions[index])+2
-				poz_length2:= poz_length + 2
+				//poz_length:= int(positions[index])+2
+				//poz_length2:= poz_length + 2
 				
-				fmt.Printf("poz1 for length '%d' \n", poz_length)
-				fmt.Printf("poz1 for length'%d' \n", poz_length2)
+				//fmt.Printf("poz1 for length '%d' \n", poz_length)
+				//fmt.Printf("poz1 for length'%d' \n", poz_length2)
 
-				payload_length := [2]byte(buf[poz_length:poz_length2])
-				fmt.Printf("payload length= '%X' \n", payload_length)	
+				//payload_length := [2]byte(buf[poz_length:poz_length2])
+				//fmt.Printf("payload length= '%X' \n", payload_length)	
 
 
 				// TIMESTAMP
@@ -144,7 +161,7 @@ func SerialReadContinuousPayload(portName string) {
 
 
 				payload_timestamp := []byte(buf[poz1:poz2])
-				fmt.Printf("payload timestamp= '%X' \n", payload_timestamp)	
+				//fmt.Printf("payload timestamp= '%X' \n", payload_timestamp)	
 
 				// TIMESTAMP CONVERSION				
 
@@ -160,11 +177,11 @@ func SerialReadContinuousPayload(portName string) {
 
 				// Step 3: Convert the Unix timestamp to a time.Time object
 				// Unix expects the number of seconds since 1970-01-01
-				timeValue := time.Unix(int64(timestamp), 0)
+				//timeValue := time.Unix(int64(timestamp), 0)
 
 				// Print the converted timestamp
-				fmt.Printf("VALUE 1  %v , VALUE 2 %T \n", timestamp, timestamp)
-				fmt.Printf("Readable timestamp: %s\n", timeValue.Format(time.RFC3339))
+				//fmt.Printf("VALUE 1  %v , VALUE 2 %T \n", timestamp, timestamp)
+				//fmt.Printf("Readable timestamp: %s\n", timeValue.Format(time.RFC3339))
 				
 			
 
@@ -177,7 +194,7 @@ func SerialReadContinuousPayload(portName string) {
 				//fmt.Printf("poz2 for pir status '%d' \n", poz2)
 
 				payload_pir_status := []byte(buf[poz1:poz2])
-				fmt.Printf("payload pir status= '%x' \n", payload_pir_status)	
+				//fmt.Printf("payload pir status= '%x' \n", payload_pir_status)	
 
 
 				// PAYLOAD PIR1 VALUE
@@ -193,7 +210,7 @@ func SerialReadContinuousPayload(portName string) {
 				swapEndianess(payload_pir1_value)
 
 
-				fmt.Printf("payload PIR 1 value= '%X' \n", payload_pir1_value)	
+				//fmt.Printf("payload PIR 1 value= '%X' \n", payload_pir1_value)	
 
 				payload_pir1_value_fl, err := hexToFloat32BigEndian(payload_pir1_value)
 				if err != nil {
@@ -215,7 +232,7 @@ func SerialReadContinuousPayload(portName string) {
 				payload_pir2_value := []byte(buf[poz3:poz4])
 				swapEndianess(payload_pir2_value)
 
-				fmt.Printf("payload PIR 2 value= '%X' \n", payload_pir2_value)	
+				//fmt.Printf("payload PIR 2 value= '%X' \n", payload_pir2_value)	
 
 				payloat_pir2_value_fl, err := hexToFloat32BigEndian(payload_pir2_value)
 				if err != nil {
@@ -227,21 +244,31 @@ func SerialReadContinuousPayload(portName string) {
 				// PAYLOAD CHECKSUM
 				// Parsing checksum_value
 
-				poz_xor_1:=int(positions[index])+17
-				poz_xor_2:= poz_xor_1 + 1
+				//poz_xor_1:=int(positions[index])+17
+				//poz_xor_2:= poz_xor_1 + 1
 
-				fmt.Printf("poz xor 1 for XOR value '%d' \n", poz_xor_1)
-				fmt.Printf("poz xor 2 for XOR value '%d' \n", poz_xor_2)
+				//fmt.Printf("poz xor 1 for XOR value '%d' \n", poz_xor_1)
+				//fmt.Printf("poz xor 2 for XOR value '%d' \n", poz_xor_2)
 	
-				payload_xor_checksum  := [1]byte(buf[poz_xor_1:poz_xor_2])
-				fmt.Printf("cheksum from payload = '%X' \n", payload_xor_checksum )	
+				//payload_xor_checksum  := [1]byte(buf[poz_xor_1:poz_xor_2])
+				//fmt.Printf("cheksum from payload = '%X' \n", payload_xor_checksum )	
 
 
 				// do XOR for this range 
-				calculated_xor_checksum := xorChecksum(buf[int(positions[index]):poz_xor_1])
-				fmt.Printf("calculated cheksum = '%X' \n", calculated_xor_checksum )
+				//calculated_xor_checksum := xorChecksum(buf[int(positions[index]):poz_xor_1])
+				//fmt.Printf("calculated cheksum = '%X' \n", calculated_xor_checksum )
 
-				fmt.Printf("full payload = '%X' \n", string (buf[poz_length:poz_xor_2]))
+				//fmt.Printf("full payload = '%X' \n", string (buf[poz_length:poz_xor_2]))
+
+
+				
+
+				payload_pir1_value_fl = rand.Float32()*(5-200)
+				payloat_pir2_value_fl = rand.Float32()*(10-100)
+
+				this_cycle_time := time.Now() 
+
+				fmt.Printf("TIMESTAMP WRITTEN IS = %s \n", this_cycle_time)
 
 				write_influx_datapoint (portName, byteHexToInt(payload_pir_status), this_cycle_time , timestamp, payload_pir1_value_fl, payloat_pir2_value_fl)
 
@@ -260,3 +287,47 @@ func SerialReadContinuousPayload(portName string) {
 	}
 }
 
+
+
+func write_influx_datapoint (sensor_name string, sensor_ir_status int, this_cycle_time time.Time, timestamp uint32, pir1_value float32, pir2_value float32) {
+
+	token := os.Getenv("INFLUX_TOKEN")
+
+	fmt.Printf("token= %s \n", token)
+
+	url := "http://localhost:8086"
+	client := influxdb2.NewClient(url, token)
+	org := "multic"
+	bucket := "ikea_pilot1"
+	writeAPI := client.WriteAPIBlocking(org, bucket)
+	
+
+	tags := map[string]string{
+		"sensor_name": sensor_name,
+		"location": "Klaipedos Baldai",
+		"recipe": "Stalas sokiams ",
+	}
+
+
+	fields := map[string]interface{}{
+		"pir1_value": pir1_value,
+		"pir2_value": pir2_value,
+		"sensor_ir_status": sensor_ir_status,
+		"sensor_timestamp": timestamp,
+	}
+
+	fmt.Printf("writing sensor name %s pir1 %f and pir2 %f and sensor ir status %d and TIMESTAMP is %s  \n", sensor_name, pir1_value, pir2_value, sensor_ir_status, this_cycle_time)
+
+
+	point := write.NewPoint("sensor_pir_measurement", tags, fields, this_cycle_time)	
+
+
+	if err := writeAPI.WritePoint(context.Background(), point); err != nil {
+			log.Fatal(err)
+	}
+
+	//writeAPI.Flush()
+	//time.Sleep(1 * time.Second) // separate points by 1 second
+
+
+}
