@@ -136,7 +136,7 @@ func SerialReadContinuousPayload(portName string) {
 
 			for index < len(positions){
 				
-				fmt.Printf("Hex pattern '%s' found at positions: %v\n", frame_start, positions)
+				fmt.Printf("\nHex pattern '%s' found at positions: %v\n", frame_start, positions)
 
 				// LENGTH
 				// Parsing payload_length 
@@ -194,7 +194,7 @@ func SerialReadContinuousPayload(portName string) {
 				//fmt.Printf("poz2 for pir status '%d' \n", poz2)
 
 				payload_pir_status := []byte(buf[poz1:poz2])
-				//fmt.Printf("payload pir status= '%x' \n", payload_pir_status)	
+				fmt.Printf("\n PIR status= '%x' \n", payload_pir_status)	
 
 
 				// PAYLOAD PIR1 VALUE
@@ -213,10 +213,11 @@ func SerialReadContinuousPayload(portName string) {
 				//fmt.Printf("payload PIR 1 value= '%X' \n", payload_pir1_value)	
 
 				payload_pir1_value_fl, err := hexToFloat32BigEndian(payload_pir1_value)
+
 				if err != nil {
 					fmt.Printf("Error converting hex to float32: %v\n", err)
 				} else {
-					fmt.Printf("PIR1 float val = %f \n", payload_pir1_value_fl)
+					//fmt.Printf("PIR1 float val = %f \n", payload_pir1_value_fl)
 				}
 
 
@@ -238,7 +239,7 @@ func SerialReadContinuousPayload(portName string) {
 				if err != nil {
 					fmt.Printf("Error converting hex to float32: %v\n", err)
 				} else {
-					fmt.Printf("PIR2 float val = %f \n", payloat_pir2_value_fl)
+					//fmt.Printf("PIR2 float val = %f \n", payloat_pir2_value_fl)
 				}
 
 				// PAYLOAD CHECKSUM
@@ -268,7 +269,7 @@ func SerialReadContinuousPayload(portName string) {
 
 				this_cycle_time := time.Now() 
 
-				fmt.Printf("TIMESTAMP WRITTEN IS = %s \n", this_cycle_time)
+				fmt.Printf("\nTIMESTAMP WRITTEN IS = %s \n", this_cycle_time)
 
 				write_influx_datapoint (portName, byteHexToInt(payload_pir_status), this_cycle_time , timestamp, payload_pir1_value_fl, payloat_pir2_value_fl)
 

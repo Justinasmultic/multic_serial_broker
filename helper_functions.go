@@ -25,7 +25,7 @@ func hexToFloat32BigEndian(bytes []byte) (float32, error) {
 		return 0, fmt.Errorf("hex string must represent exactly 4 bytes for float32")
 	}
 
-	fmt.Printf("bytes are %v \n", bytes)
+	//fmt.Printf("bytes are %v \n", bytes)
 
 
 	// Convert bytes to a uint32 using Big Endian byte order
