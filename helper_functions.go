@@ -78,6 +78,35 @@ func findAllHexPatternPositions(buf []byte, n int, hexPattern string) ([]int, er
 }
 
 
+// findAllHexPatternPositions returns a slice of positions where the specific hex pattern is found in the buffer.
+// If the pattern is not found, it returns an empty slice.
+func findPos(buf []byte) ([]int, error) {
+	
+	// Decode the hex pattern into a byte slice
+	hexPattern := "AABB"
+
+	searchBytes, err := hex.DecodeString(hexPattern)
+	if err != nil {
+		return nil, fmt.Errorf("invalid hex pattern: %s", hexPattern)
+	}
+
+	searchLen := len(searchBytes)
+
+	// Store all positions of the found pattern
+	var positions []int
+	n := len(buf)
+
+	// Loop through the buffer to find all occurrences of the pattern
+	for i := 0; i <= n-searchLen; i++ {
+		// Compare the bytes in the buffer to the search pattern
+		if matchBytes(buf[i:i+searchLen], searchBytes) {
+			positions = append(positions, i) // Store the starting position of the pattern
+			fmt.Printf("Pattern found at position: %d\n", i) // Print the position found
+		}
+	}
+
+	return positions, nil
+}
 
 
 // matchBytes compares two byte slices for equality
@@ -89,6 +118,65 @@ func matchBytes(buf1, buf2 []byte) bool {
 	}
 	return true
 }
+
+
+
+
+
+
+
+
+func matchBytes2(a, b []byte) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}
+
+// findAllHexPatternPositions finds all positions of the hex pattern in buffers sent over a channel.
+func findAllHexPatternPositions2(bufChan chan []byte, hexPattern string) ([]int, error) {
+	// Decode the hex pattern into a byte slice
+	searchBytes, err := hex.DecodeString(hexPattern)
+	if err != nil {
+		return nil, fmt.Errorf("invalid hex pattern: %s", hexPattern)
+	}
+
+	searchLen := len(searchBytes)
+
+	// Store all positions of the found pattern
+	var positions []int
+	var totalRead int = 0
+
+	for buf := range bufChan {
+		n := len(buf)
+
+		// Check if the buffer is smaller than the pattern length
+		if n < searchLen {
+			continue // Skip this buffer if it's smaller than the search pattern
+		}
+		
+
+		for i := 0; i <= n-searchLen; i++ {
+			// Compare the bytes in the buffer to the search pattern
+			if matchBytes2(buf[i:i+searchLen], searchBytes) {
+				foundPosition := totalRead + i
+				positions = append(positions, foundPosition) // Store the starting position of the pattern
+				//fmt.Printf("Pattern found at position: %d\n", foundPosition) // Print the position found
+			}
+		}
+
+		totalRead += n // Update the total number of bytes read
+	}
+
+	return positions, nil
+}
+
+
 
 
 
@@ -119,3 +207,11 @@ func byteHexToInt(b []byte) int {
 	}
 	return 0 // Return 0 if byte array is not of length 1
 }
+
+
+
+
+
+
+
+

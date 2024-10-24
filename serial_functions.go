@@ -2,14 +2,16 @@ package main
 
 import (
 	"fmt"
-
+	"math/rand"
+	"encoding/binary"
 	"time"
 	"os"
 	"log"
 	"context"
 	"strings"
+	"errors"
 	"github.com/tarm/serial"
-
+	//"go.bug.st/serial.v1"
 	"github.com/influxdata/influxdb-client-go/v2/api/write"
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
 
@@ -54,6 +56,13 @@ func MonitorSerialDevices() {
 
 
 
+func unrecoverableError(err error) bool {
+    // Define conditions for an unrecoverable error
+    return errors.Is(err, os.ErrClosed) 
+}
+
+
+
 
 
 // SerialReadContinuousPayload reads data from the serial port
@@ -65,73 +74,116 @@ func SerialReadContinuousPayload(portName string) {
 
 
 	// Configure the serial port
-	config := &serial.Config{Name: portName, Baud: 115200, ReadTimeout: time.Second * 0}
+	config := &serial.Config{Name: portName, Baud: 115200}
 	port, err := serial.OpenPort(config)
 	if err != nil {
 		log.Fatalf("Failed to open port %s: %v\n", portName, err)
 		return
 	}
-	defer port.Close()
+	//defer port.Close()
 
 
 	// Write data to the serial port - request signal data sending in continouos mode
 	
-	data_to_write := []byte("START \n")
+	data_to_write := []byte("START\n")
 	n_w, err_w := port.Write(data_to_write)
 	if err_w != nil {
 		log.Fatal(err_w)
 	}	
 	log.Printf("Sent %d bytes\n", n_w)
+
+	//defer port.Close()
+
+	time.Sleep(1 * time.Second)
+
+
+	fifo := make(chan []byte, 10240) 
+
 	
-
-	// Buffer to store incoming data
-	buf := make([]byte, 10240)
-
-	fmt.Printf("Reading data from %s...\n", portName)
-
+// GOROUTINE to read continuos stream of data every 1ms
+	go func (portforroutine *serial.Port) {
 	for {
-	    
 		// Read from the serial port
-		n, err := port.Read(buf)
+		buf := make([]byte, 10240)
+		n, err := portforroutine.Read(buf)
 		if err != nil {
 			log.Printf("Error reading from port %s: %v\n", portName, err)
 			return
 		}
 
+        if n > 0 {
+            //fmt.Printf("Writing %d bytes to FIFO\n", n)
+            fifo <- buf[:n]
+        }
+
+
+		// Output the read data
+
+		
+		//fmt.Printf("Data from device= %s; is receved, payload size=%d \n", portName,n)
+		//fmt.Printf("\nDATA RECEIVED TIMESTAMP %s \n", time.Now())
+
+		//time.Sleep(10 * time.Millisecond) // separate points by 1 second
+		}
+	} (port)
+
+
+
+// GOROUTINE to read from FIFO buffer and print how much has been read
+    go func() {
+        for data := range fifo {
+            fmt.Printf("Read from FIFO %d bytes: \n", len(data))
+            //fmt.Printf("FIFO size %d bytes: \n", len(fifo))
+            //fmt.Printf("FIFO message : %b \n", data)
+
+
+	        positions, err := findPos(data)
+			if err != nil {
+				fmt.Printf("Error: %v\n", err)
+			return
+			}
+
+			go parseAndStore(portName, positions, data)
+
+			//fmt.Printf("\nAll positions are: %d  \n", positions)
+
+        }
+        //time.Sleep(10 * time.Millisecond) // separate points by 1 second
+    }()
+
+
+
+    // Goroutine 
+    /*
+    go func() {
+
+		// Parse the received buffer 
+		// Parsing frame_start and getting positions for all packets
+		// 2 bytes
+
+		//frame_start := "AABB"
+
+		positions, err := findPos(data)
+		if err != nil {
+			fmt.Printf("Error: %v\n", err)
+		return
+		}	
+
+		fmt.Printf("\nAll positions are: %d  \n", positions)
+
+		time.Sleep(1 * time.Second) // separate points by 1 second
+    }()
+	*/
+
 		// Output the read data
 
 		//fmt.Printf("Data from device= %s; is receved, data structure is=%s ; with size=%d \n", portName, string(buf[:n]),n)
-		fmt.Printf("Data from device= %s; is receved, payload size=%d \n", portName,n)
-		fmt.Printf("\nDATA RECEIVED TIMESTAMP %s \n", time.Now())
+		//fmt.Printf("Data from device= %s; is receved, payload size=%d \n", portName,n)
+		//fmt.Printf("\nDATA RECEIVED TIMESTAMP %s \n", time.Now())
 
-		time.Sleep(10 * time.Millisecond) // separate points by 1 second
+		//time.Sleep(10 * time.Millisecond) // separate points by 1 second
 
-		/*
-		go func() {
-		        for {
-		            buf := make([]byte, 10240) // reading buffer
-		            n, err := port.Read(buf)
-		            if err != nil {
-		                log.Printf("Error reading from serial port: %v\n", err)
-		                continue
-		            }
-		            if n > 0 {
-		                fmt.Printf("Writing %d bytes to FIFO\n", n)
-		                fifo <- buf[:n]
-		            }
-		        }
-		    }()
 
-		    // Goroutine to read from FIFO buffer and print how much has been read
-		    go func() {
-		        for data := range fifo {
-		            fmt.Printf("Read from FIFO %d bytes: %s\n", len(data), data)
-		        }
-		    }()
-
-		    // Prevent the main goroutine from exiting
-		    select {}		
-		    */
 /*		
 
 		// Parse the received buffer 
@@ -320,8 +372,169 @@ func SerialReadContinuousPayload(portName string) {
 
 
 */		
-	}
+
 }
+
+
+
+
+
+
+
+func parseAndStore (portName string, positions []int, buf []byte) {
+
+		var index int = 0
+		// Output the result
+		if len(positions) > 0 {
+
+			for index < len(positions) {
+				
+				//fmt.Printf("\nHex pattern '%s' found at positions: %v\n", frame_start, positions)
+
+				// LENGTH
+				// Parsing payload_length 
+				//poz_length:= int(positions[index])+2
+				//poz_length2:= poz_length + 2
+				
+				//fmt.Printf("poz1 for length '%d' \n", poz_length)
+				//fmt.Printf("poz1 for length'%d' \n", poz_length2)
+
+				//payload_length := [2]byte(buf[poz_length:poz_length2])
+				//fmt.Printf("payload length= '%X' \n", payload_length)	
+
+
+				// TIMESTAMP
+				// Parsing payload_timestamp
+				
+				poz1:= int(positions[index])+4
+				poz2:= poz1+4
+
+				//fmt.Printf("poz1 for timestamp '%d' \n", poz1)
+				//fmt.Printf("poz1 for timestamp'%d' \n", poz2)
+
+
+				payload_timestamp := []byte(buf[poz1:poz2])
+				//fmt.Printf("payload timestamp= '%X' \n", payload_timestamp)	
+
+				// TIMESTAMP CONVERSION				
+
+				// Step 2: Convert the byte slice to a uint32 value (Little Endian)
+				if len(payload_timestamp) != 4 {
+					fmt.Println("Invalid length for a 32-bit timestamp representation")
+					return
+				}
+
+				// Interpret the bytes as a 32-bit unsigned integer
+				timestamp := binary.BigEndian.Uint32(payload_timestamp)
+				//timestamp_int := int32(timestamp)
+
+				// Step 3: Convert the Unix timestamp to a time.Time object
+				// Unix expects the number of seconds since 1970-01-01
+				//timeValue := time.Unix(int64(timestamp), 0)
+
+				// Print the converted timestamp
+				//fmt.Printf("VALUE 1  %v , VALUE 2 %T \n", timestamp, timestamp)
+				//fmt.Printf("Readable timestamp: %s\n", timeValue.Format(time.RFC3339))
+				
+			
+
+				// PAYLOAD PIR 1 STATUS
+				// Parsing payload_pir_status
+				poz1= int(positions[index])+8
+				poz2= poz1+1
+
+				//fmt.Printf("poz1 for pir status '%d' \n", poz1)
+				//fmt.Printf("poz2 for pir status '%d' \n", poz2)
+
+				payload_pir_status := []byte(buf[poz1:poz2])
+				//fmt.Printf("\n PIR status= '%x' \n", payload_pir_status)	
+
+
+				// PAYLOAD PIR1 VALUE
+				// Parsing payload_pir_1_value
+				poz1= int(positions[index])+9
+				poz2= poz1+4
+
+				//fmt.Printf("poz1 for PIR 1 value '%d' \n", poz1)
+				//fmt.Printf("poz2 for PIR 1 value '%d' \n", poz2)
+
+				
+				payload_pir1_value := []byte(buf[poz1:poz2])
+				swapEndianess(payload_pir1_value)
+
+
+				//fmt.Printf("payload PIR 1 value= '%X' \n", payload_pir1_value)	
+
+				payload_pir1_value_fl, err := hexToFloat32BigEndian(payload_pir1_value)
+
+				if err != nil {
+					fmt.Printf("Error converting hex to float32: %v\n", err)
+				} else {
+					//fmt.Printf("PIR1 float val = %f \n", payload_pir1_value_fl)
+				}
+
+
+				// PAYLOAD PIR2 VALUE
+				// Parsing payload_pir_2_value
+				poz3:= int(positions[index])+13
+				poz4:= poz3+4
+
+				//fmt.Printf("poz1 for PIR 2 value '%d' \n", poz3)
+				//fmt.Printf("poz2 for PIR 2 value '%d' \n", poz4)
+
+				
+				payload_pir2_value := []byte(buf[poz3:poz4])
+				swapEndianess(payload_pir2_value)
+
+				//fmt.Printf("payload PIR 2 value= '%X' \n", payload_pir2_value)	
+
+				payloat_pir2_value_fl, err := hexToFloat32BigEndian(payload_pir2_value)
+				if err != nil {
+					fmt.Printf("Error converting hex to float32: %v\n", err)
+				} else {
+					//fmt.Printf("PIR2 float val = %f \n", payloat_pir2_value_fl)
+				}
+
+				// PAYLOAD CHECKSUM
+				// Parsing checksum_value
+
+				//poz_xor_1:=int(positions[index])+17
+				//poz_xor_2:= poz_xor_1 + 1
+
+				//fmt.Printf("poz xor 1 for XOR value '%d' \n", poz_xor_1)
+				//fmt.Printf("poz xor 2 for XOR value '%d' \n", poz_xor_2)
+	
+				//payload_xor_checksum  := [1]byte(buf[poz_xor_1:poz_xor_2])
+				//fmt.Printf("cheksum from payload = '%X' \n", payload_xor_checksum )	
+
+
+				// do XOR for this range 
+				//calculated_xor_checksum := xorChecksum(buf[int(positions[index]):poz_xor_1])
+				//fmt.Printf("calculated cheksum = '%X' \n", calculated_xor_checksum )
+
+				//fmt.Printf("full payload = '%X' \n", string (buf[poz_length:poz_xor_2]))
+				
+
+
+				payload_pir1_value_fl = rand.Float32()*(5-200)
+				payloat_pir2_value_fl = rand.Float32()*(10-100)
+
+				this_cycle_time := time.Now() 
+
+				//fmt.Printf("\nTIMESTAMP WRITTEN IS = %s \n", this_cycle_time)
+
+				write_influx_datapoint (portName, byteHexToInt(payload_pir_status), this_cycle_time , timestamp, payload_pir1_value_fl, payloat_pir2_value_fl)
+
+
+				//time.Sleep(2 * time.Second) // separate points by 1 second
+
+			index++
+
+			}	
+
+		}
+}
+
 
 
 
