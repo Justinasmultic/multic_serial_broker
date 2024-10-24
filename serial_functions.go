@@ -2,14 +2,14 @@ package main
 
 import (
 	"fmt"
-	"math/rand"
+
 	"time"
 	"os"
 	"log"
 	"context"
 	"strings"
 	"github.com/tarm/serial"
-	"encoding/binary"
+
 	"github.com/influxdata/influxdb-client-go/v2/api/write"
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
 
@@ -65,7 +65,7 @@ func SerialReadContinuousPayload(portName string) {
 
 
 	// Configure the serial port
-	config := &serial.Config{Name: portName, Baud: 9600, ReadTimeout: time.Second * 5}
+	config := &serial.Config{Name: portName, Baud: 115200, ReadTimeout: time.Second * 0}
 	port, err := serial.OpenPort(config)
 	if err != nil {
 		log.Fatalf("Failed to open port %s: %v\n", portName, err)
@@ -102,8 +102,37 @@ func SerialReadContinuousPayload(portName string) {
 
 		//fmt.Printf("Data from device= %s; is receved, data structure is=%s ; with size=%d \n", portName, string(buf[:n]),n)
 		fmt.Printf("Data from device= %s; is receved, payload size=%d \n", portName,n)
+		fmt.Printf("\nDATA RECEIVED TIMESTAMP %s \n", time.Now())
 
+		time.Sleep(10 * time.Millisecond) // separate points by 1 second
 
+		/*
+		go func() {
+		        for {
+		            buf := make([]byte, 10240) // reading buffer
+		            n, err := port.Read(buf)
+		            if err != nil {
+		                log.Printf("Error reading from serial port: %v\n", err)
+		                continue
+		            }
+		            if n > 0 {
+		                fmt.Printf("Writing %d bytes to FIFO\n", n)
+		                fifo <- buf[:n]
+		            }
+		        }
+		    }()
+
+		    // Goroutine to read from FIFO buffer and print how much has been read
+		    go func() {
+		        for data := range fifo {
+		            fmt.Printf("Read from FIFO %d bytes: %s\n", len(data), data)
+		        }
+		    }()
+
+		    // Prevent the main goroutine from exiting
+		    select {}		
+		    */
+/*		
 
 		// Parse the received buffer 
 		// Parsing frame_start and getting positions for all packets
@@ -136,7 +165,7 @@ func SerialReadContinuousPayload(portName string) {
 
 			for index < len(positions){
 				
-				fmt.Printf("\nHex pattern '%s' found at positions: %v\n", frame_start, positions)
+				//fmt.Printf("\nHex pattern '%s' found at positions: %v\n", frame_start, positions)
 
 				// LENGTH
 				// Parsing payload_length 
@@ -194,7 +223,7 @@ func SerialReadContinuousPayload(portName string) {
 				//fmt.Printf("poz2 for pir status '%d' \n", poz2)
 
 				payload_pir_status := []byte(buf[poz1:poz2])
-				fmt.Printf("\n PIR status= '%x' \n", payload_pir_status)	
+				//fmt.Printf("\n PIR status= '%x' \n", payload_pir_status)	
 
 
 				// PAYLOAD PIR1 VALUE
@@ -269,7 +298,7 @@ func SerialReadContinuousPayload(portName string) {
 
 				this_cycle_time := time.Now() 
 
-				fmt.Printf("\nTIMESTAMP WRITTEN IS = %s \n", this_cycle_time)
+				//fmt.Printf("\nTIMESTAMP WRITTEN IS = %s \n", this_cycle_time)
 
 				write_influx_datapoint (portName, byteHexToInt(payload_pir_status), this_cycle_time , timestamp, payload_pir1_value_fl, payloat_pir2_value_fl)
 
@@ -285,6 +314,12 @@ func SerialReadContinuousPayload(portName string) {
 
 		// timer to sleep for 2 seconds before we reloop
 		//time.Sleep(1 * time.Second) // separate points by 1 second
+
+
+
+
+
+*/		
 	}
 }
 
@@ -294,7 +329,7 @@ func write_influx_datapoint (sensor_name string, sensor_ir_status int, this_cycl
 
 	token := os.Getenv("INFLUX_TOKEN")
 
-	fmt.Printf("token= %s \n", token)
+	//fmt.Printf("token= %s \n", token)
 
 	url := "http://localhost:8086"
 	client := influxdb2.NewClient(url, token)
@@ -317,7 +352,7 @@ func write_influx_datapoint (sensor_name string, sensor_ir_status int, this_cycl
 		"sensor_timestamp": timestamp,
 	}
 
-	fmt.Printf("writing sensor name %s pir1 %f and pir2 %f and sensor ir status %d and TIMESTAMP is %s  \n", sensor_name, pir1_value, pir2_value, sensor_ir_status, this_cycle_time)
+	//fmt.Printf("writing sensor name %s pir1 %f and pir2 %f and sensor ir status %d and TIMESTAMP is %s  \n", sensor_name, pir1_value, pir2_value, sensor_ir_status, this_cycle_time)
 
 
 	point := write.NewPoint("sensor_pir_measurement", tags, fields, this_cycle_time)	
